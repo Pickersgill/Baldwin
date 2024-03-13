@@ -25,6 +25,7 @@ class Population(list):
     def merge(self, p1, p2, split=None):
         if not split:
             split = np.random.randint(0, min(len(p1.strategy),len(p2.strategy))) 
+        new_lr = (p1.lr + p2.lr)/2
         return Player(p1.name+"son", np.concatenate([p1.base_strategy[:split], p2.base_strategy[split:]]))
 
     def reset(self):
@@ -45,6 +46,7 @@ class Player:
                     self.base_strategy[i] = 2
         else:
             self.base_strategy = strat
+        self.lr = lr
         self.reset()
 
     def reset(self):
@@ -92,23 +94,25 @@ class Environment:
     def reset(self):
         self.population.reset()
 
-N = 50
-ROUNDS = 20
+N = 10
+ROUNDS = N
 #ROUND_LENS = [10, 20, 30, 40, 50]
 ROUND_LEN = 50
-STRAT_SIZE = 10
+STRAT_SIZE = 5
+COMPETITION = 1
+TRIALS = 1
+LEARNING_RATE = 0
 
 population = Population()
 for i in range(N):
-    population.append(Player(f"Player {i}", lr=0.2, strat_size=STRAT_SIZE))
+    population.append(Player(f"Player {i}", lr=LEARNING_RATE, strat_size=STRAT_SIZE))
 env = Environment(population)
 
-tests = 1
 rs = np.zeros((ROUNDS, N))
 
-for t in range(tests):
+for t in range(TRIALS):
     print(f"\n{t}")
-    rs += env.do_game(rounds=ROUNDS, round_len=ROUND_LEN, competition=25)/ROUND_LEN
+    rs += env.do_game(rounds=ROUNDS, round_len=ROUND_LEN, competition=COMPETITION)/ROUND_LEN/TRIALS
 
 plt.imshow(rs.T, vmin=0, vmax=1)
 plt.xlabel("Rounds")
