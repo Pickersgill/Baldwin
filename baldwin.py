@@ -10,11 +10,11 @@ class Population(list):
         for player in self:
             player.mutate()
 
-    def reproduce(self):
+    def reproduce(self, competition=20):
         odds = np.zeros(len(self))
         for i, player in enumerate(self):
             odds[i] = player.reward
-        odds = (1 + odds) / sum(1 + odds)
+        odds = (competition + odds) / sum(competition + odds)
         new_pop = Population()
         for i in range(len(self)):
             p1, p2 = random.choices(self, weights=odds, k=2)
@@ -36,10 +36,13 @@ class Population(list):
 
 
 class Player:
-    def __init__(self, name, strat=None):
+    def __init__(self, name, strat=None, strat_size=10, lr=0.33):
         self.name = name
         if strat is None:
-            self.base_strategy = np.random.randint(0, 3, 10)
+            self.base_strategy = np.random.randint(0, 2, strat_size)
+            for i in range(len(self.base_strategy)):
+                if np.random.random() <= lr:
+                    self.base_strategy[i] = 2
         else:
             self.base_strategy = strat
         self.reset()
@@ -60,8 +63,13 @@ class Environment:
     def __init__(self, population):
         self.population = population
 
+    def smooth_score(self, strat):
+        s = sum(strat) / len(strat)
+        return s
+
     def score(self, strat):
-        return int(all([s for s in strat]))
+        s = np.floor(self.smooth_score(strat))
+        return s
 
     def do_generation(self, steps=100):
         for i in range(steps):
@@ -71,32 +79,41 @@ class Environment:
                 if score == 0:
                     player.mutate()
 
-    def do_game(self, rounds=100, round_len=100):
+    def do_game(self, rounds=100, round_len=100, competition=20):
         rewards = np.zeros((rounds, len(self.population)))
         for i in range(rounds):
+            print(f"Round {i}", end="\r")
             self.do_generation(round_len)
             rewards[i] = [p.reward for p in self.population]
-            self.population = self.population.reproduce()
+            self.population = self.population.reproduce(competition=competition)
+            self.reset()
         return rewards
     
     def reset(self):
         self.population.reset()
 
+N = 50
+ROUNDS = 20
+#ROUND_LENS = [10, 20, 30, 40, 50]
+ROUND_LEN = 50
+STRAT_SIZE = 10
+
 population = Population()
-N = 100
 for i in range(N):
-    population.append(Player(f"Player {i}"))
-
+    population.append(Player(f"Player {i}", lr=0.2, strat_size=STRAT_SIZE))
 env = Environment(population)
-round_lens = [1, 2, 3, 4, 5]
 
-for rl in round_lens:
-    rs = env.do_game(rounds=10, round_len=rl) / (np.ones(len(env.population)) / len(env.population))
-    xs = np.sum(rs, axis=1)
-    plt.plot(xs, label=f"Round Len: {rl}")
-    env.reset()
+tests = 1
+rs = np.zeros((ROUNDS, N))
 
-plt.legend()
+for t in range(tests):
+    print(f"\n{t}")
+    rs += env.do_game(rounds=ROUNDS, round_len=ROUND_LEN, competition=25)/ROUND_LEN
+
+plt.imshow(rs.T, vmin=0, vmax=1)
+plt.xlabel("Rounds")
+plt.ylabel("Players")
+plt.colorbar()
 plt.show()
 
 
