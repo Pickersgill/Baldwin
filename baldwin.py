@@ -83,25 +83,27 @@ class Environment:
 
     def do_game(self, rounds=100, round_len=100, competition=20):
         rewards = np.zeros((rounds, len(self.population)))
+        strats = np.zeros((rounds, len(self.population), STRAT_SIZE))
         for i in range(rounds):
             print(f"Round {i}", end="\r")
             self.do_generation(round_len)
             rewards[i] = [p.reward for p in self.population]
+            strats[i] = np.array([p.strategy for p in self.population])
             self.population = self.population.reproduce(competition=competition)
             self.reset()
-        return rewards
+        return rewards, strats
     
     def reset(self):
         self.population.reset()
 
-N = 10
-ROUNDS = N
+N = 250
+ROUNDS = 500
 #ROUND_LENS = [10, 20, 30, 40, 50]
-ROUND_LEN = 50
-STRAT_SIZE = 5
+ROUND_LEN = 30
+STRAT_SIZE = 18
 COMPETITION = 1
 TRIALS = 1
-LEARNING_RATE = 0
+LEARNING_RATE = 0.5
 
 population = Population()
 for i in range(N):
@@ -109,12 +111,15 @@ for i in range(N):
 env = Environment(population)
 
 rs = np.zeros((ROUNDS, N))
+# strats = np.zeros((ROUNDS, STRAT_SIZE))
 
-for t in range(TRIALS):
-    print(f"\n{t}")
-    rs += env.do_game(rounds=ROUNDS, round_len=ROUND_LEN, competition=COMPETITION)/ROUND_LEN/TRIALS
-
-plt.imshow(rs.T, vmin=0, vmax=1)
+#for t in range(TRIALS):
+    # print(f"\n{t}")
+    #rs += new_rs/ROUND_LEN/TRIALS
+_, strats = env.do_game(rounds=ROUNDS, round_len=ROUND_LEN, competition=COMPETITION)
+print(strats.shape)
+strats = np.mean(strats.T, axis=1)
+plt.imshow(strats, vmin=0, vmax=1)
 plt.xlabel("Rounds")
 plt.ylabel("Players")
 plt.colorbar()
