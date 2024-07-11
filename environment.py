@@ -45,11 +45,12 @@ class Environment:
         strats = np.zeros((gens, len(self.population), strat_size))
         for i in range(gens):
             print(f"Round {i}", end="\r")
+            strats[i] = np.array([p.base_strategy for p in self.population])
             self.do_generation(gen_len)
             rewards[i] = [p.reward for p in self.population]
-            strats[i] = np.array([p.strategy for p in self.population])
             self.population = self.population.reproduce(competition=competition)
             self.reset()
+        print()
         return rewards, strats
     
     def reset(self):
